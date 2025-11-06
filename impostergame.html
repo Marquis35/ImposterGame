@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Imposter Game</title>
+  <style>
+    :root{
+      --bg: #0f1226;           
+      --panel: #171b34;        
+      --accent: #6c7bff;       
+      --accent-2: #00d1b2;    
+      --text: #eaf0ff;         
+      --muted: #a9b2d6;        
+      --danger: #ff6b6b;       
+      --ok: #7cf79a;           
+      --btn: #22274a;          
+      --btn-hover: #2b3161;    
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin: 0; background: radial-gradient(1000px 1000px at 20% -10%, #1c2151 0, transparent 40%), var(--bg);
+      color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      display: grid; place-items: center; padding: 20px;
+    }
+
+    .app{ width: min(980px, 100%); }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(16px, 4vw, 28px);
+    }
+
+    h1{ margin: 0 0 8px; font-size: clamp(28px, 4.6vw, 40px); letter-spacing: .5px; }
+    p.lead{ color: var(--muted); margin-top: 4px; margin-bottom: 18px; }
+
+    .row{ display: grid; gap: 14px; grid-template-columns: 1fr; }
+    @media (min-width: 720px){ .row-2{ grid-template-columns: 1fr 1fr; } }
+
+    label{ font-size: 14px; color: var(--muted); margin-bottom: 6px; display: inline-block; }
+
+    .control{ background: var(--panel); border: 1px solid rgba(255,255,255,.08); color: var(--text);
+      padding: 12px 14px; border-radius: 12px; width: 100%; outline: none; font-size: 16px; }
+
+    .btn{ -webkit-tap-highlight-color: transparent; user-select: none;
+      background: var(--btn); border: 1px solid rgba(255,255,255,.08); color: var(--text);
+      border-radius: 14px; padding: 14px 18px; font-weight: 600; font-size: 16px; cursor: pointer;
+      transition: transform .02s ease, background .2s ease, border-color .2s ease; }
+    .btn:hover{ background: var(--btn-hover); }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn-primary{ background: linear-gradient(135deg, var(--accent), #9aa4ff); color: #0b0f2a; border-color: transparent; }
+    .btn-primary:hover{ filter: brightness(1.05); }
+
+    .btn-ghost{ background: transparent; border-color: rgba(255,255,255,.18); }
+
+    .stack{ display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .center{ text-align: center; }
+    .xl{ font-size: clamp(36px, 6.5vw, 64px); font-weight: 800; letter-spacing: .5px; }
+    .lg{ font-size: clamp(22px, 4.2vw, 32px); font-weight: 700; }
+    .dim{ color: var(--muted); }
+
+    .tag{ display: inline-flex; align-items: center; gap: 8px; border: 1px dashed rgba(255,255,255,.22);
+      padding: 8px 12px; border-radius: 999px; font-size: 14px; color: var(--muted); }
+
+    .hidden{ display: none !important; }
+
+    .overlay{
+      border-radius: var(--radius); border: 1px dashed rgba(255,255,255,.22);
+      padding: clamp(22px, 6vw, 40px); background: rgba(12, 15, 36, .55);
+      display: grid; place-items: center; min-height: 340px; text-align: center;
+    }
+
+    .imposter{ color: var(--danger); }
+    .word{ color: var(--ok); text-shadow: 0 6px 30px rgba(0,0,0,.35); }
+
+    .footer{ display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 16px; color: var(--muted); font-size: 13px; }
+    .footer .right{ display: flex; gap: 10px; align-items: center; }
+
+    .pill{ background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15); padding: 6px 10px; border-radius: 999px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- "lobby" setup screen -->
+    <section id="lobby" class="card">
+      <h1>Imposter Game</h1>
+      <p class="lead">Pass‑the‑laptop social game. One secret Imposter, everyone else sees the word.</p>
+
+      <div class="row row-2">
+        <div>
+          <label for="playerCount">Players</label>
+          <input id="playerCount" class="control" type="number" min="3" max="12" value="5" />
+          <div class="notice">Tip: 4–10 players works best.</div>
+        </div>
+        <div>
+          <label for="category">Category</label>
+          <select id="category" class="control">
+            <option value="movies-easy">Movies — Easy</option>
+            <option value="movies-hard">Movies — Hard</option>
+            <option value="cr-cards">Clash Royale Cards</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="stack" style="margin-top:14px">
+        <button id="btnStart" class="btn btn-primary">Start Round</button>
+        <button id="btnRandomImposter" class="btn btn-ghost" title="Choose a different Imposter before you start">Reroll Imposter</button>
+      </div>
+
+      <div class="footer">
+        <div class="left">
+          <span class="tag">How it works: Player 1 clicks to reveal → reads screen → clicks again to pass → next player…</span>
+        </div>
+        <div class="right">
+          <span id="seedTag" class="pill">Imposter: <strong id="seedPreview">?</strong></span>
+          <span class="pill">Word Pack: <strong id="packPreview">Movies — Easy</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- cover screen between players -->
+    <section id="passCover" class="card hidden">
+      <div class="overlay">
+        <div class="center">
+          <div class="dim">Pass the laptop to</div>
+          <div class="xl" id="whoLabel">Player 1</div>
+          <div class="notice">When ready, click to reveal their screen.</div>
+          <div style="margin-top:14px"><button id="btnReveal" class="btn btn-primary">Click to Reveal</button></div>
+        </div>
+      </div>
+      <div class="footer"><span class="pill">Category: <strong id="catPreview">Movies — Easy</strong></span><span class="pill">Players: <strong id="countPreview">5</strong></span></div>
+    </section>
+
+    
+    <section id="reveal" class="card hidden">
+      <div class="overlay">
+        <div class="center">
+          <div class="dim">This screen is for</div>
+          <div class="lg" id="playerHeader">Player 1</div>
+          <div id="revealWord" class="xl word">WORD</div>
+          <div id="revealImposter" class="xl imposter hidden">You are the IMPOSTER</div>
+          <div id="revealHint" class="notice">keep yo poker face twin</div>
+          <div style="margin-top:16px"><button id="btnHide" class="btn">Hide &amp; Pass to Next</button></div>
+        </div>
+      </div>
+      
+      <div class="footer"><span class="pill">Round Word: <strong id="roundWordPreview">—</strong></span></div>   
+    </section>
+
+    <!-- Discussion-->
+    <section id="discussion" class="card hidden">
+      <div class="center">
+        <h1>Discuss &amp; Vote</h1>
+        <p class="lead">When you're ready, reveal the Imposter, then restart or head back to the lobby.</p>
+        <div id="finalImposterMsg" class="xl imposter hidden">Imposter: Player <span id="finalImposterNum"></span></div>
+        <div class="stack" style="justify-content:center; margin-top:14px">
+          <button id="btnRevealFinalImposter" class="btn btn-primary">Reveal Imposter</button>
+        </div>
+        <div class="stack" style="justify-content:center; margin-top:22px">
+          <button id="btnNewRound" class="btn">New Round (same settings)</button>
+          <button id="btnBackLobby" class="btn btn-ghost">Back to Home Screen</button>
+        </div>
+      </div>
+      <div class="footer"><span class="pill">Category: <strong id="catPreview2">Movies — Easy</strong></span><span class="pill">Word: <strong id="roundWordPreview2">—</strong></span></div>
+    </section>
+  </div>
+
+  <script>
+    // movies/cr cards
+    const PACKS = {
+      'movies-easy': {
+        label: 'Movies — Easy',
+        words: [
+          'Titanic','Avatar','Inception','Frozen','Toy Story','Star Wars','Jurassic Park','The Lion King','Harry Potter','The Matrix',
+          'Finding Nemo','The Dark Knight','Spider-Man','Shrek','Up','Inside Out','Black Panther','The Incredibles','Moana',
+          'Avengers','Guardians of the Galaxy','Top Gun','WALL·E','Pirates of the Caribbean','Kung Fu Panda','Cars','Minions','Joker','The Batman',
+          'The lion king', 'happy gilmore', 'Monsters, Inc.', 'Despicable Me', 'zootopia', 'Aladdin', 'Back to the Future','Ghostbusters', 'Jaws', 'Rocky',
+          'The Little Mermaid'
+        ]
+      },
+      'movies-hard': {
+        label: 'Movies — Hard',
+        words: [
+          'Whiplash','La La Land','Shawshank Redempstion', 'The Godfather', 'Lord of the rings', 'Forrest gump', 'fight club', 'The matrix', 'Interstellar', 
+          'Se7en', 'Saving private ryan', 'Terminator', 'Gladiator', 'The conjuring', 'grown ups', 'Dune', 'the princess bride',
+          , 'The Hunger Games', 'Twilight', 'the karate kid', 'Blade Runner 2049', 'the hangover', 'wolf of wall street'
+        
+          
+        ]
+      },
+      'cr-cards': {
+        label: 'Clash Royale Cards',
+        words: [
+          // Troops
+          'Knight','Archers','Giant','Musketeer','Mini P.E.K.K.A','Hog Rider','Valkyrie','Wizard','Witch','Baby Dragon','Skeleton Army','Goblin Barrel',
+          'Prince','Dark Prince','P.E.K.K.A','Mega Minion','Electro Wizard','Ice Wizard','Princess','Miner','Bandit','Lumberjack','Royal Ghost',
+          'Magic Archer','Hunter','Ram Rider','Fisherman','Phoenix','Monk','Skeletons','Spear Goblins','Goblin Gang','Dart Goblin','Bats','Minions',
+          // Spells
+          'Fireball','Arrows','Zap','Log','Rocket','Lightning','Poison','Freeze','Tornado','Rage','Mirror','Barbarian Barrel','Earthquake',
+          // Buildings
+          'Cannon','Tesla','Inferno Tower','Bomb Tower','Mortar','X-Bow','Goblin Hut','Barbarian Hut','Furnace','Elixir Collector'
+        ]
+      }
+    };
+
+    
+    const $ = sel => document.querySelector(sel);
+    function show(id){ ['#lobby','#passCover','#reveal','#discussion'].forEach(s => $(s).classList.add('hidden')); $(id).classList.remove('hidden'); }
+    const randInt = (n) => Math.floor(Math.random() * n);
+
+    
+    let state = {
+      players: 5,
+      packKey: 'movies-easy',
+      word: '',
+      current: 1,
+      imposter: 1
+    };
+
+    
+    const playerCount = $('#playerCount');
+    const category = $('#category');
+    const btnStart = $('#btnStart');
+    const btnRandomImposter = $('#btnRandomImposter');
+
+    const whoLabel = $('#whoLabel');
+    const btnReveal = $('#btnReveal');
+
+    const playerHeader = $('#playerHeader');
+    const revealWord = $('#revealWord');
+    const revealImposter = $('#revealImposter');
+    const revealHint = $('#revealHint');
+    const btnHide = $('#btnHide');
+
+    const btnNewRound = $('#btnNewRound');
+    const btnBackLobby = $('#btnBackLobby');
+
+    const seedPreview = $('#seedPreview');
+    const packPreview = $('#packPreview');
+    const catPreview = $('#catPreview');
+    const catPreview2 = $('#catPreview2');
+    const countPreview = $('#countPreview');
+    const roundWordPreview = $('#roundWordPreview');
+    const roundWordPreview2 = $('#roundWordPreview2');
+
+    const btnRevealFinalImposter = $('#btnRevealFinalImposter');
+    const finalImposterMsg = $('#finalImposterMsg');
+    const finalImposterNum = $('#finalImposterNum');
+
+    
+    function selectWord(){
+      const pack = PACKS[state.packKey];
+      const idx = randInt(pack.words.length);
+      return pack.words[idx];
+    }
+
+    function setImposter(){
+      state.imposter = 1 + randInt(state.players);
+      seedPreview.textContent = '#' + state.imposter; 
+    }
+
+    function updateLobbyPreview(){
+      packPreview.textContent = PACKS[state.packKey].label;
+      catPreview.textContent = PACKS[state.packKey].label;
+      catPreview2.textContent = PACKS[state.packKey].label;
+      countPreview.textContent = state.players;
+    }
+
+    
+    playerCount.addEventListener('change', ()=>{
+      const v = Number(playerCount.value);
+      state.players = Math.max(3, Math.min(12, v||3));
+      playerCount.value = state.players; updateLobbyPreview(); setImposter();
+    });
+
+    category.addEventListener('change', ()=>{
+      state.packKey = category.value; updateLobbyPreview();
+    });
+
+    btnRandomImposter.addEventListener('click', ()=>{ setImposter(); });
+
+    btnStart.addEventListener('click', ()=>{
+      if(state.players < 3){ alert('Need at least 3 players.'); return; }
+      state.word = selectWord();
+      state.current = 1;
+      if(!state.imposter || state.imposter > state.players){ setImposter(); }
+      roundWordPreview.textContent = '\u2022\u2022\u2022';
+      whoLabel.textContent = `Player ${state.current}`;
+      show('#passCover');
+      roundWordPreview2.textContent = state.word;
+      // reset final reveal 
+      finalImposterMsg.classList.add('hidden');
+      btnRevealFinalImposter.disabled = false;
+    });
+
+    btnReveal.addEventListener('click', ()=>{
+      playerHeader.textContent = `Player ${state.current}`;
+      const isImposter = (state.current === state.imposter);
+      if(isImposter){
+        revealImposter.classList.remove('hidden');
+        revealWord.classList.add('hidden');
+        revealHint.textContent = 'Bluff your way through the discussion.';
+      } else {
+        revealWord.textContent = state.word;
+        revealWord.classList.remove('hidden');
+        revealImposter.classList.add('hidden');
+        revealHint.textContent = 'Memorize the word. Do not say it out loud yet!';
+      }
+      show('#reveal');
+    });
+
+    btnHide.addEventListener('click', ()=>{
+      if(state.current < state.players){
+        state.current += 1;
+        whoLabel.textContent = `Player ${state.current}`;
+        show('#passCover');
+      } else {
+        roundWordPreview.textContent = state.word; 
+        show('#discussion');
+      }
+    });
+
+    btnNewRound.addEventListener('click', ()=>{
+      setImposter();
+      btnStart.click();
+    });
+
+    btnBackLobby.addEventListener('click', ()=>{
+      show('#lobby');
+    });
+
+    btnRevealFinalImposter.addEventListener('click', ()=>{
+      finalImposterNum.textContent = state.imposter;
+      finalImposterMsg.classList.remove('hidden');
+      btnRevealFinalImposter.disabled = true;
+    });
+
+    (function init(){
+      updateLobbyPreview();
+      setImposter();
+    })();
+  </script>
+</body>
+</html>
